@@ -11,6 +11,7 @@ import (
 	"github.com/micromdm/nanomdm/storage/diskv"
 	"github.com/micromdm/nanomdm/storage/file"
 	"github.com/micromdm/nanomdm/storage/inmem"
+	"github.com/micromdm/nanomdm/storage/mongodb"
 	"github.com/micromdm/nanomdm/storage/mysql"
 	"github.com/micromdm/nanomdm/storage/pgsql"
 
@@ -93,6 +94,12 @@ func (s *Storage) Parse(logger log.Logger) (storage.AllStorage, error) {
 				return nil, err
 			}
 			mdmStorage = append(mdmStorage, pgsqlStorage)
+		case "mongodb":
+			mongodbStorage, err := mongodbStorageConfig(dsn, options, logger)
+			if err != nil {
+				return nil, err
+			}
+			mdmStorage = append(mdmStorage, mongodbStorage)
 		case "inmem":
 			if options != "" {
 				return nil, ErrNoStorageOptions
@@ -182,4 +189,38 @@ func pgsqlStorageConfig(dsn, options string, logger log.Logger) (*pgsql.PgSQLSto
 		}
 	}
 	return pgsql.New(opts...)
+}
+
+func mongodbStorageConfig(dsn, options string, logger log.Logger) (*mongodb.MongoDB, error) {
+	if dsn == "" {
+		return nil, ErrMissingDSN
+	}
+	logger = logger.With("storage", "mongodb")
+	logger.Debug("msg", "connecting to MongoDB storage")
+	opts := []mongodb.Option{
+		mongodb.WithDSN(dsn),
+	}
+	if options != "" {
+		for k, v := range splitOptions(options) {
+			switch k {
+			case "database":
+				if v == "" {
+					return nil, fmt.Errorf("invalid value for database option: %q", v)
+				}
+				opts = append(opts, mongodb.WithDatabase(v))
+			case "collection_prefix":
+				opts = append(opts, mongodb.WithCollectionPrefix(v))
+			case "delete":
+				if v == "1" {
+					opts = append(opts, mongodb.WithDeleteCommands())
+					logger.Debug("msg", "deleting commands")
+				} else if v != "0" {
+					return nil, fmt.Errorf("invalid value for delete option: %q", v)
+				}
+			default:
+				return nil, fmt.Errorf("invalid option: %q", k)
+			}
+		}
+	}
+	return mongodb.New(opts...)
 }

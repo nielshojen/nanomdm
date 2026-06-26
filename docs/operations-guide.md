@@ -136,6 +136,27 @@ Options are specified as a comma-separated list of "key=value" pairs. The pgsql 
 
 *Example:* `-storage pgsql -storage-dsn postgres://postgres:toor@localhost/nanomdm -storage-options delete=1`
 
+#### mongodb storage backend
+
+* `-storage mongodb`
+
+Configures the MongoDB storage backend. The `-storage-dsn` flag should be a MongoDB connection string. If the connection string includes a database name, NanoMDM uses that database; otherwise it uses `nanomdm`. The MongoDB backend creates its collections and indexes automatically when NanoMDM starts.
+
+*Example:* `-storage mongodb -storage-dsn mongodb://localhost:27017/nanomdm`
+
+Options are specified as a comma-separated list of "key=value" pairs. The mongodb backend supports these options:
+
+* `database=name`
+  * This option overrides the database name from the connection string.
+
+* `collection_prefix=prefix`
+  * This option prefixes the NanoMDM MongoDB collection names, which can be useful when sharing a database.
+
+* `delete=1`, `delete=0`
+  * This option turns on or off the command and response deleter. It is disabled by default. When enabled (with `delete=1`) command responses, queued commands, and commands themselves will be deleted from the database after enrollments have responded to a command.
+
+*Example:* `-storage mongodb -storage-dsn mongodb://localhost:27017 -storage-options database=nanomdm,collection_prefix=mdm_,delete=1`
+
 #### in-memory storage backend
 
 * `-storage inmem`
